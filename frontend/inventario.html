@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventario CNC</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Industrial-style Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css"/>
+    
+    <!-- Tu nuevo archivo CSS -->
+    <link rel="stylesheet" href="css/inventario.css">
+    
+    <style>
+        :root {
+            --cnc-primary: #1a5f7a;
+            --cnc-secondary: #2d7d9a;
+            --cnc-accent: #57c1eb;
+            --cnc-warning: #ff9a3c;
+            --cnc-danger: #ff6b6b;
+            --cnc-success: #4cd97b;
+            --cnc-dark: #0d2d3a;
+            --cnc-light: #e8f4f8;
+            --cnc-metal: #5d6d7e;
+        }
+        
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: linear-gradient(135deg, #0a1929 0%, #1a3a4f 100%);
+        }
+        
+        h1, h2, h3, .logo {
+            font-family: 'Orbitron', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <!-- Fondo simplificado -->
+    <div class="background-container">
+        <div class="cnc-grid-line horizontal"></div>
+        <div class="cnc-grid-line vertical"></div>
+    </div>
+
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-industry"></i>
+                    <h1>Rech Inventario</h1>
+                    <span class="cnc-tag">Sistema de Gestión Industrial</span>
+                </div>
+                
+                <nav>
+                    <ul>
+                        <li><a href="#"><i class="fas fa-home"></i> Inicio</a></li>
+                        <li><a href="#"><i class="fas fa-toolbox"></i> Herramientas</a></li>
+                        <li><a href="#"><i class="fas fa-weight-hanging"></i> Materiales</a></li>
+                        
+                        <li class="user-dropdown">
+                            <div class="user-menu-trigger" id="userMenuTrigger">
+                                <i class="fas fa-user-hard-hat"></i>
+                                <span id="userName">Operador</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="user-dropdown-content" id="userDropdown">
+                                <div class="user-info">
+                                    <div class="user-name" id="dropdownUserName">Operador CNC</div>
+                                    <div class="user-email" id="dropdownUserEmail">operador@fabrica.com</div>
+                                </div>
+                                <button class="logout-btn" id="logoutBtn">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span>Cerrar Sesión</span>
+                                </button>
+                            </div>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="inventario-content">
+        <div class="container">
+            <!-- Sección de Estadísticas CNC -->
+            <div class="card cnc-card">
+                <div class="section-header">
+                    <h2><i class="fas fa-tachometer-alt"></i> Resumen del Inventario</h2>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card cnc-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Herramientas Activas</h3>
+                            <span class="stat-number" id="totalHerramientas">0</span>
+                            <span class="stat-sub">Disponibles</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card cnc-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-cube"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Material en Stock</h3>
+                            <span class="stat-number" id="totalMaterial">0</span>
+                            <span class="stat-sub">Kilos / Metros</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card cnc-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-wrench"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>En Mantenimiento</h3>
+                            <span class="stat-number" id="enMantenimiento">0</span>
+                            <span class="stat-sub">Herramientas</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card cnc-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Alertas Stock</h3>
+                            <span class="stat-number" id="alertasStock">0</span>
+                            <span class="stat-sub">Por reponer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros CNC -->
+            <div class="filtros-container cnc-filtros">
+                <div class="section-header">
+                    <h2><i class="fas fa-filter"></i> Filtros de Búsqueda</h2>
+                </div>
+                <div class="filtros-grid">
+                    <div class="filtro-item">
+                        <label><i class="fas fa-toolbox"></i> Tipo de Herramienta</label>
+                        <select id="filtroTipo">
+                            <option value="">Todos los tipos</option>
+                            <option value="fresa">Fresas</option>
+                            <option value="broca">Brocas</option>
+                            <option value="inserto">Insertos</option>
+                            <option value="portaherramientas">Portaherramientas</option>
+                        </select>
+                    </div>
+                    <div class="filtro-item">
+                        <label><i class="fas fa-thermometer-half"></i> Estado</label>
+                        <select id="filtroEstado">
+                            <option value="">Todos los estados</option>
+                            <option value="optimo">Óptimo</option>
+                            <option value="desgaste">En desgaste</option>
+                            <option value="reemplazar">Por reemplazar</option>
+                            <option value="mantenimiento">En mantenimiento</option>
+                        </select>
+                    </div>
+                    <div class="filtro-item">
+                        <label><i class="fas fa-industry"></i> Máquina</label>
+                        <select id="filtroMaquina">
+                            <option value="">Todas las máquinas</option>
+                            <option value="cnc-01">CNC-01 (Tornos)</option>
+                            <option value="cnc-02">CNC-02 (Fresadoras)</option>
+                            <option value="cnc-03">CNC-03 (5 Ejes)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Herramientas -->
+            <div class="card cnc-card">
+                <div class="section-header">
+                    <div>
+                        <h2><i class="fas fa-toolbox"></i> Inventario de Herramientas</h2>
+                        <p>Control de herramientas, materiales y consumibles CNC</p>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn-primary cnc-btn" id="btnNuevaHerramienta">
+                            <i class="fas fa-plus"></i>
+                            <span>Nueva Herramienta</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="tabla-container">
+                    <table id="tablaHerramientas" class="display" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Descripción</th>
+                                <th>Tipo</th>
+                                <th>Diámetro (mm)</th>
+                                <th>Material</th>
+                                <th>Stock</th>
+                                <th>Stock Mínimo</th>
+                                <th>Ubicación</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Datos cargados dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sección de Materiales -->
+            <div class="card cnc-card">
+                <div class="section-header">
+                    <div>
+                        <h2><i class="fas fa-weight-hanging"></i> Materiales en Stock</h2>
+                        <p>Gestión de materias primas y materiales de producción</p>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn-primary cnc-btn" id="btnNuevoMaterial">
+                            <i class="fas fa-plus"></i>
+                            <span>Nuevo Material</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="materialesGrid" class="materiales-grid">
+                    <!-- Materiales cargados dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modales CNC -->
+    <div id="herramientaModal" class="modal cnc-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitleHerramienta">Nueva Herramienta CNC</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="formHerramienta">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-barcode"></i> Código Herramienta</label>
+                            <input type="text" id="codigoHerramienta" required placeholder="HTL-001">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-toolbox"></i> Descripción</label>
+                            <input type="text" id="descripcionHerramienta" required placeholder="Fresa de punta esférica">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-cog"></i> Tipo</label>
+                            <select id="tipoHerramienta" required>
+                                <option value="">Seleccionar tipo</option>
+                                <option value="fresa">Fresa</option>
+                                <option value="broca">Broca</option>
+                                <option value="inserto">Insertos</option>
+                                <option value="macho">Macho de roscar</option>
+                                <option value="portaherramientas">Portaherramientas</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-ruler"></i> Diámetro (mm)</label>
+                            <input type="number" id="diametroHerramienta" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-weight"></i> Material</label>
+                            <select id="materialHerramienta" required>
+                                <option value="carburo">Carburo</option>
+                                <option value="acero rapido">Acero Rápido</option>
+                                <option value="ceramica">Cerámica</option>
+                                <option value="diamante">Diamante PCD</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-boxes"></i> Stock Actual</label>
+                            <input type="number" id="stockHerramienta" required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-exclamation-triangle"></i> Stock Mínimo</label>
+                            <input type="number" id="stockMinimoHerramienta" value="3" required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-map-marker-alt"></i> Ubicación</label>
+                            <input type="text" id="ubicacionHerramienta" placeholder="Almacén A - Estante 3">
+                        </div>
+                        <div class="form-group full-width">
+                            <label><i class="fas fa-sticky-note"></i> Notas / Especificaciones</label>
+                            <textarea id="notasHerramienta" rows="3" placeholder="Velocidad recomendada: 12000 RPM, Avance: 0.1 mm/diente"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary cnc-btn" id="cancelarHerramienta">Cancelar</button>
+                    <button type="submit" class="btn-primary cnc-btn">Registrar Herramienta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Material -->
+    <div id="materialModal" class="modal cnc-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitleMaterial">Nuevo Material</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="formMaterial">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Nombre del Material</label>
+                            <input type="text" id="nombreMaterial" required placeholder="Acero 4140">
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select id="tipoMaterial" required>
+                                <option value="">Seleccionar tipo</option>
+                                <option value="metal">Metal</option>
+                                <option value="plastico">Plástico</option>
+                                <option value="madera">Madera</option>
+                                <option value="composite">Compuesto</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Formato</label>
+                            <select id="formatoMaterial">
+                                <option value="barra">Barra</option>
+                                <option value="placa">Placa</option>
+                                <option value="rollo">Rollo</option>
+                                <option value="granulado">Granulado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Unidad de Medida</label>
+                            <select id="unidadMaterial">
+                                <option value="kg">Kilogramos</option>
+                                <option value="m">Metros</option>
+                                <option value="unidad">Unidades</option>
+                                <option value="litro">Litros</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Cantidad en Stock</label>
+                            <input type="number" id="cantidadMaterial" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Stock Mínimo</label>
+                            <input type="number" id="stockMinimoMaterial" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Especificaciones Técnicas</label>
+                            <textarea id="especificacionesMaterial" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary cnc-btn" id="cancelarMaterial">Cancelar</button>
+                    <button type="submit" class="btn-primary cnc-btn">Registrar Material</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/inventario.js"></script>
+
+</body>
+</html>

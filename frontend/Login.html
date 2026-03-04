@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Arbored</title>
+    
+    <!-- Styles & Fonts -->
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-container">
+        <div class="network-node node-1"></div>
+        <div class="network-node node-2"></div>
+        <div class="network-node node-3"></div>
+        <div class="network-node node-4"></div>
+        <div class="network-node node-5"></div>
+        
+        <div class="network-line line-1"></div>
+        <div class="network-line line-2"></div>
+        <div class="network-line line-3"></div>
+    </div>
+    
+    <div class="container">
+        <div class="app-header">
+            <div class="logo">
+                <img src="Rech.jpg" alt="Logo Reach" class="logo-img">
+            </div>
+        </div>
+
+        <main class="app-content">
+            <div class="login-container card">
+                <h2>Iniciar Sesión</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <div class="input-with-icon">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="email" name="email" placeholder="Correo Electrónico" required>
+                        </div>
+                        <span class="error-message" id="emailError"></span>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="password" name="password" placeholder="Contraseña" required>
+                        </div>
+                        <span class="error-message" id="passwordError"></span>
+                    </div>
+                    <button type="submit" id="loginBtn" class="btn-primary">
+                        <span class="btn-text">Iniciar Sesión</span>
+                        <i class="fas fa-leaf btn-icon"></i>
+                    </button>
+                </form>
+                <p class="switch-form">¿No tienes cuenta? <a href="#" id="showRegister">Regístrate aquí</a></p>
+            </div>
+
+            <div class="register-container card hidden">
+                <h2>Crear Cuenta</h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <div class="input-with-icon">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="regName" name="name" placeholder="Nombre Completo" required>
+                        </div>
+                        <span class="error-message" id="nameError"></span>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-with-icon">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="regEmail" name="email" placeholder="Correo Electrónico" required>
+                        </div>
+                        <span class="error-message" id="regEmailError"></span>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="regPassword" name="password" placeholder="Contraseña" required>
+                        </div>
+                        <span class="error-message" id="regPasswordError"></span>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="regConfirmPassword" name="confirmPassword" placeholder="Confirmar Contraseña" required>
+                        </div>
+                        <span class="error-message" id="confirmPasswordError"></span>
+                    </div>
+                    <button type="submit" id="registerBtn" class="btn-primary">
+                        <span class="btn-text">Registrarse</span>
+                        <i class="fas fa-seedling btn-icon"></i>
+                    </button>
+                </form>
+                <p class="switch-form">¿Ya tienes cuenta? <a href="#" id="showLogin">Inicia sesión aquí</a></p>
+            </div>
+
+            <div class="message-container hidden" id="messageContainer">
+                <p id="messageText"></p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+// Desregistrar cualquier service worker existente
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        registrations.forEach(function(registration) {
+            registration.unregister();
+            console.log('Service Worker desregistrado:', registration.scope);
+        });
+    });
+}
+</script>
+
+        <script>
+        // Mostrar estado de conexión
+        function updateOnlineStatus() {
+            const statusElement = document.getElementById('connection-status');
+            if (statusElement) {
+                if (navigator.onLine) {
+                    statusElement.style.display = 'none';
+                } else {
+                    statusElement.style.display = 'block';
+                    statusElement.textContent = '🔴 Modo offline - Algunas funciones pueden no estar disponibles';
+                }
+            }
+        }
+
+        // Escuchar cambios de conexión
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        
+        // Estado inicial
+        document.addEventListener('DOMContentLoaded', updateOnlineStatus);
+    </script>
+    <script src="js/auth.js"></script>
+</body>
+</html>
