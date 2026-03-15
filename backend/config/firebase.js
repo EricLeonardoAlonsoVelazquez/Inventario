@@ -14,7 +14,6 @@ const firebaseConfig = {
   universe_domain: "googleapis.com"
 };
 
-// Validar que todas las variables necesarias estén presentes
 const requiredEnvVars = [
   'FIREBASE_PROJECT_ID',
   'FIREBASE_PRIVATE_KEY',
@@ -26,7 +25,6 @@ const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 if (missingVars.length > 0) {
   console.error('❌ ERROR: Faltan variables de entorno de Firebase:', missingVars);
   
-  // En desarrollo, puedes cargar desde archivo si existe
   if (process.env.NODE_ENV === 'development') {
     console.log('🔄 Intentando cargar desde archivo local...');
     try {

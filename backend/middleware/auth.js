@@ -37,8 +37,7 @@ const verifyAuthentication = async (token) => {
   
   try {
     const decoded = verifyToken(token);
-    
-    // Buscar usuario en Firebase
+
     const usersRef = db.collection('usuarios');
     const snapshot = await usersRef.where('email', '==', decoded.email).limit(1).get();
     

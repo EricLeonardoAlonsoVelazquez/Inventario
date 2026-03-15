@@ -98,12 +98,10 @@ const authenticate = async (req, res, next) => {
 
 // ==================== RUTAS DE AUTENTICACIÓN ====================
 
-// Registro de usuario
 router.post('/auth/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Validaciones
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -117,8 +115,6 @@ router.post('/auth/register', async (req, res) => {
         message: 'La contraseña debe tener al menos 6 caracteres'
       });
     }
-
-    // Verificar si el usuario ya existe
     const usersRef = db.collection('usuarios');
     const snapshot = await usersRef.where('email', '==', email).get();
     
@@ -129,7 +125,6 @@ router.post('/auth/register', async (req, res) => {
       });
     }
 
-    // Hash de la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Crear usuario en Firebase
@@ -266,7 +261,379 @@ router.post('/auth/logout', (req, res) => {
 
 // ==================== RUTAS DE INVENTARIO (PROTEGIDAS) ====================
 
-// 📦 PRODUCTOS
+// 🛠️ HERRAMIENTAS CNC
+
+// Obtener todas las herramientas del usuario
+router.get('/inventario/herramientas', authenticate, async (req, res) => {
+  try {
+    const herramientasRef = db.collection('herramientas');
+    const snapshot = await herramientasRef.where('usuarioId', '==', req.user.id).get();
+    
+    const herramientas = [];
+    snapshot.forEach(doc => {
+      herramientas.push({ id: doc.id, ...doc.data() });
+    });
+    
+    res.json({
+      success: true,
+      data: herramientas,
+      message: 'Herramientas obtenidas correctamente'
+    });
+  } catch (error) {
+    console.error('❌ Error obteniendo herramientas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener herramientas'
+    });
+  }
+});
+
+// Crear nueva herramienta
+router.post('/inventario/herramientas', authenticate, async (req, res) => {
+  try {
+    const nuevaHerramienta = req.body;
+    
+    if (!nuevaHerramienta.codigo || !nuevaHerramienta.descripcion || !nuevaHerramienta.tipo) {
+      return res.status(400).json({
+        success: false,
+        message: 'Faltan datos requeridos (código, descripción, tipo)'
+      });
+    }
+    
+    const herramienta = {
+      codigo: nuevaHerramienta.codigo,
+      descripcion: nuevaHerramienta.descripcion,
+      tipo: nuevaHerramienta.tipo,
+      diametro: parseFloat(nuevaHerramienta.diametro) || 0,
+      material: nuevaHerramienta.material || '',
+      stock: parseInt(nuevaHerramienta.stock) || 0,
+      stock_minimo: parseInt(nuevaHerramienta.stock_minimo) || 3,
+      ubicacion: nuevaHerramienta.ubicacion || '',
+      maquina: nuevaHerramienta.maquina || '',
+      notas: nuevaHerramienta.notas || '',
+      usuarioId: req.user.id,
+      fecha_creacion: new Date().toISOString(),
+      ultima_actualizacion: new Date().toISOString()
+    };
+    
+    const docRef = await db.collection('herramientas').add(herramienta);
+    
+    res.status(201).json({
+      success: true,
+      data: { id: docRef.id, ...herramienta },
+      message: 'Herramienta creada exitosamente'
+    });
+  } catch (error) {
+    console.error('❌ Error creando herramienta:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear herramienta'
+    });
+  }
+});
+
+// Actualizar herramienta
+router.put('/inventario/herramientas/:id', authenticate, async (req, res) => {
+  try {
+    const herramientaId = req.params.id;
+    const datosActualizados = req.body;
+    
+    const herramientaRef = db.collection('herramientas').doc(herramientaId);
+    const doc = await herramientaRef.get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Herramienta no encontrada'
+      });
+    }
+    
+    const herramientaActual = doc.data();
+    
+    if (herramientaActual.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'No autorizado para modificar esta herramienta'
+      });
+    }
+    
+    const herramientaActualizada = {
+      ...herramientaActual,
+      ...datosActualizados,
+      ultima_actualizacion: new Date().toISOString()
+    };
+    
+    await herramientaRef.update(herramientaActualizada);
+    
+    res.json({
+      success: true,
+      data: { id: herramientaId, ...herramientaActualizada },
+      message: 'Herramienta actualizada exitosamente'
+    });
+  } catch (error) {
+    console.error('❌ Error actualizando herramienta:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar herramienta'
+    });
+  }
+});
+
+// Eliminar herramienta
+router.delete('/inventario/herramientas/:id', authenticate, async (req, res) => {
+  try {
+    const herramientaId = req.params.id;
+    
+    const herramientaRef = db.collection('herramientas').doc(herramientaId);
+    const doc = await herramientaRef.get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Herramienta no encontrada'
+      });
+    }
+    
+    const herramienta = doc.data();
+    
+    if (herramienta.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'No autorizado para eliminar esta herramienta'
+      });
+    }
+    
+    await herramientaRef.delete();
+    
+    res.json({
+      success: true,
+      message: 'Herramienta eliminada exitosamente',
+      data: { id: herramientaId, ...herramienta }
+    });
+  } catch (error) {
+    console.error('❌ Error eliminando herramienta:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar herramienta'
+    });
+  }
+});
+
+// 🧱 MATERIALES CNC
+
+// Obtener todos los materiales del usuario
+router.get('/inventario/materiales', authenticate, async (req, res) => {
+  try {
+    const materialesRef = db.collection('materiales');
+    const snapshot = await materialesRef.where('usuarioId', '==', req.user.id).get();
+    
+    const materiales = [];
+    snapshot.forEach(doc => {
+      materiales.push({ id: doc.id, ...doc.data() });
+    });
+    
+    res.json({
+      success: true,
+      data: materiales,
+      message: 'Materiales obtenidos correctamente'
+    });
+  } catch (error) {
+    console.error('❌ Error obteniendo materiales:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener materiales'
+    });
+  }
+});
+
+// Crear nuevo material
+router.post('/inventario/materiales', authenticate, async (req, res) => {
+  try {
+    const nuevoMaterial = req.body;
+    
+    if (!nuevoMaterial.nombre || !nuevoMaterial.tipo) {
+      return res.status(400).json({
+        success: false,
+        message: 'Faltan datos requeridos (nombre, tipo)'
+      });
+    }
+    
+    const material = {
+      nombre: nuevoMaterial.nombre,
+      tipo: nuevoMaterial.tipo,
+      formato: nuevoMaterial.formato || '',
+      unidad: nuevoMaterial.unidad || 'kg',
+      cantidad: parseFloat(nuevoMaterial.cantidad) || 0,
+      stock_minimo: parseFloat(nuevoMaterial.stock_minimo) || 0,
+      proveedor: nuevoMaterial.proveedor || '',
+      especificaciones: nuevoMaterial.especificaciones || '',
+      usuarioId: req.user.id,
+      fecha_creacion: new Date().toISOString(),
+      ultima_actualizacion: new Date().toISOString()
+    };
+    
+    const docRef = await db.collection('materiales').add(material);
+    
+    res.status(201).json({
+      success: true,
+      data: { id: docRef.id, ...material },
+      message: 'Material creado exitosamente'
+    });
+  } catch (error) {
+    console.error('❌ Error creando material:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear material'
+    });
+  }
+});
+
+// Actualizar material
+router.put('/inventario/materiales/:id', authenticate, async (req, res) => {
+  try {
+    const materialId = req.params.id;
+    const datosActualizados = req.body;
+    
+    const materialRef = db.collection('materiales').doc(materialId);
+    const doc = await materialRef.get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Material no encontrado'
+      });
+    }
+    
+    const materialActual = doc.data();
+    
+    if (materialActual.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'No autorizado para modificar este material'
+      });
+    }
+    
+    const materialActualizado = {
+      ...materialActual,
+      ...datosActualizados,
+      ultima_actualizacion: new Date().toISOString()
+    };
+    
+    await materialRef.update(materialActualizado);
+    
+    res.json({
+      success: true,
+      data: { id: materialId, ...materialActualizado },
+      message: 'Material actualizado exitosamente'
+    });
+  } catch (error) {
+    console.error('❌ Error actualizando material:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar material'
+    });
+  }
+});
+
+// Eliminar material
+router.delete('/inventario/materiales/:id', authenticate, async (req, res) => {
+  try {
+    const materialId = req.params.id;
+    
+    const materialRef = db.collection('materiales').doc(materialId);
+    const doc = await materialRef.get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Material no encontrado'
+      });
+    }
+    
+    const material = doc.data();
+    
+    if (material.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'No autorizado para eliminar este material'
+      });
+    }
+    
+    await materialRef.delete();
+    
+    res.json({
+      success: true,
+      message: 'Material eliminado exitosamente',
+      data: { id: materialId, ...material }
+    });
+  } catch (error) {
+    console.error('❌ Error eliminando material:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar material'
+    });
+  }
+});
+
+// 📊 ESTADÍSTICAS ESPECÍFICAS PARA CNC
+
+// Obtener estadísticas generales (para herramientas y materiales)
+router.get('/inventario/estadisticas', authenticate, async (req, res) => {
+  try {
+    const usuarioId = req.user.id;
+
+    // Consultar herramientas
+    const herramientasRef = db.collection('herramientas');
+    const herramientasSnapshot = await herramientasRef.where('usuarioId', '==', usuarioId).get();
+    const herramientas = [];
+    herramientasSnapshot.forEach(doc => herramientas.push({ id: doc.id, ...doc.data() }));
+
+    // Consultar materiales
+    const materialesRef = db.collection('materiales');
+    const materialesSnapshot = await materialesRef.where('usuarioId', '==', usuarioId).get();
+    const materiales = [];
+    materialesSnapshot.forEach(doc => materiales.push({ id: doc.id, ...doc.data() }));
+
+    // Calcular totales
+    const totalHerramientas = herramientas.length;
+    const totalMaterial = materiales.length;
+
+    // Calcular alertas de stock (herramientas y materiales con stock <= stock_minimo)
+    let alertasStock = 0;
+    herramientas.forEach(h => {
+      if (h.stock <= h.stock_minimo) alertasStock++;
+    });
+    materiales.forEach(m => {
+      if (m.cantidad <= m.stock_minimo) alertasStock++;
+    });
+
+    // Herramientas en mantenimiento: actualmente no se almacena, se puede agregar luego.
+    // Por ahora se deja en 0.
+    const enMantenimiento = 0;
+
+    res.json({
+      success: true,
+      data: {
+        totalHerramientas,
+        totalMaterial,
+        enMantenimiento,
+        alertasStock
+      },
+      message: 'Estadísticas obtenidas correctamente'
+    });
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estadísticas'
+    });
+  }
+});
+
+// ==================== RUTAS ADICIONALES (PRODUCTOS Y CATEGORÍAS) ====================
+// (Se mantienen las rutas originales para compatibilidad con otro frontend)
+
+// 📦 PRODUCTOS (genéricos)
 
 // Obtener todos los productos
 router.get('/inventario/productos', authenticate, async (req, res) => {
@@ -481,7 +848,7 @@ router.delete('/inventario/productos/:id', authenticate, async (req, res) => {
   }
 });
 
-// 📊 CATEGORÍAS
+// 📊 CATEGORÍAS (genéricas)
 
 // Obtener todas las categorías
 router.get('/inventario/categorias', authenticate, async (req, res) => {
@@ -733,114 +1100,8 @@ router.delete('/inventario/categorias/:id', authenticate, async (req, res) => {
   }
 });
 
-// 📈 ESTADÍSTICAS
+// 📈 REPORTES (opcional, se mantiene)
 
-// Obtener estadísticas generales
-router.get('/inventario/estadisticas', authenticate, async (req, res) => {
-  try {
-    const productosRef = db.collection('productos');
-    const snapshot = await productosRef.where('usuarioId', '==', req.user.id).get();
-    
-    const productos = [];
-    snapshot.forEach(doc => {
-      productos.push({ id: doc.id, ...doc.data() });
-    });
-    
-    const totalProductos = productos.length;
-    const productosStock = productos.filter(p => p.estado === 'stock').length;
-    const productosBajoStock = productos.filter(p => p.estado === 'bajo_stock').length;
-    const productosAgotados = productos.filter(p => p.estado === 'agotado').length;
-    
-    const valorTotal = productos.reduce((total, producto) => {
-      return total + (producto.precio * producto.stock);
-    }, 0);
-    
-    const categoriasRef = db.collection('categorias');
-    const categoriasSnapshot = await categoriasRef.where('usuarioId', '==', req.user.id).get();
-    const totalCategorias = categoriasSnapshot.size;
-    
-    res.json({
-      success: true,
-      data: {
-        totalProductos,
-        totalCategorias,
-        productosStock,
-        productosBajoStock,
-        productosAgotados,
-        valorTotal: valorTotal.toFixed(2),
-        valorPromedioProducto: totalProductos > 0 ? (valorTotal / totalProductos).toFixed(2) : 0
-      },
-      message: 'Estadísticas obtenidas correctamente'
-    });
-  } catch (error) {
-    console.error('❌ Error obteniendo estadísticas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener estadísticas'
-    });
-  }
-});
-
-// Obtener productos recientes
-router.get('/inventario/productos-recientes', authenticate, async (req, res) => {
-  try {
-    const productosRef = db.collection('productos');
-    const snapshot = await productosRef
-      .where('usuarioId', '==', req.user.id)
-      .orderBy('fecha_creacion', 'desc')
-      .limit(5)
-      .get();
-    
-    const productosRecientes = [];
-    snapshot.forEach(doc => {
-      productosRecientes.push({ id: doc.id, ...doc.data() });
-    });
-    
-    res.json({
-      success: true,
-      data: productosRecientes,
-      message: 'Productos recientes obtenidos correctamente'
-    });
-  } catch (error) {
-    console.error('❌ Error obteniendo productos recientes:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener productos recientes'
-    });
-  }
-});
-
-// Obtener productos por agotarse
-router.get('/inventario/productos-agotarse', authenticate, async (req, res) => {
-  try {
-    const productosRef = db.collection('productos');
-    const snapshot = await productosRef
-      .where('usuarioId', '==', req.user.id)
-      .where('estado', 'in', ['bajo_stock', 'agotado'])
-      .orderBy('stock')
-      .limit(10)
-      .get();
-    
-    const productosAgotarse = [];
-    snapshot.forEach(doc => {
-      productosAgotarse.push({ id: doc.id, ...doc.data() });
-    });
-    
-    res.json({
-      success: true,
-      data: productosAgotarse,
-      message: 'Productos por agotarse obtenidos correctamente'
-    });
-  } catch (error) {
-    console.error('❌ Error obteniendo productos por agotarse:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener productos por agotarse'
-    });
-  }
-});
-
-// 📄 REPORTES
 router.get('/inventario/reporte-inventario', authenticate, async (req, res) => {
   try {
     const productosRef = db.collection('productos');
@@ -897,6 +1158,65 @@ router.get('/inventario/reporte-inventario', authenticate, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al generar reporte'
+    });
+  }
+});
+
+// Obtener productos recientes (opcional)
+router.get('/inventario/productos-recientes', authenticate, async (req, res) => {
+  try {
+    const productosRef = db.collection('productos');
+    const snapshot = await productosRef
+      .where('usuarioId', '==', req.user.id)
+      .orderBy('fecha_creacion', 'desc')
+      .limit(5)
+      .get();
+    
+    const productosRecientes = [];
+    snapshot.forEach(doc => {
+      productosRecientes.push({ id: doc.id, ...doc.data() });
+    });
+    
+    res.json({
+      success: true,
+      data: productosRecientes,
+      message: 'Productos recientes obtenidos correctamente'
+    });
+  } catch (error) {
+    console.error('❌ Error obteniendo productos recientes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener productos recientes'
+    });
+  }
+});
+
+// Obtener productos por agotarse (opcional)
+router.get('/inventario/productos-agotarse', authenticate, async (req, res) => {
+  try {
+    const productosRef = db.collection('productos');
+    const snapshot = await productosRef
+      .where('usuarioId', '==', req.user.id)
+      .where('estado', 'in', ['bajo_stock', 'agotado'])
+      .orderBy('stock')
+      .limit(10)
+      .get();
+    
+    const productosAgotarse = [];
+    snapshot.forEach(doc => {
+      productosAgotarse.push({ id: doc.id, ...doc.data() });
+    });
+    
+    res.json({
+      success: true,
+      data: productosAgotarse,
+      message: 'Productos por agotarse obtenidos correctamente'
+    });
+  } catch (error) {
+    console.error('❌ Error obteniendo productos por agotarse:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener productos por agotarse'
     });
   }
 });

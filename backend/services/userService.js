@@ -10,8 +10,6 @@ class UserService {
       if (validationErrors.length > 0) {
         throw new Error(validationErrors.join(', '));
       }
-
-      
       const userRef = db.collection('users').doc();
       user.id = userRef.id;
       
@@ -48,7 +46,6 @@ class UserService {
     let userData;
     snapshot.forEach(doc => {
       userData = doc.data();
-      // Asegurarnos de que el ID del documento se asigne al userData
       if (!userData.id) {
         userData.id = doc.id;
       }
